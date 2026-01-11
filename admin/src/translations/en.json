@@ -1,0 +1,13 @@
+{
+  "document-metadata.title": "Metadata",
+  "document-metadata.opened-at": "Opened at",
+  "document-metadata.opened-by": "by {username}",
+  "document-metadata.opened-first-time": "Opened for the first time.",
+  "document-metadata.updated-at": "Updated at",
+  "document-metadata.updated-by": "by {username}",
+  "document-metadata.created-at": "Created at",
+  "document-metadata.created-by": "by {username}",
+  "document-metadata.date.today": "Today, {formattedTime}",
+  "document-metadata.date.yesterday": "Yesterday, {formattedTime}",
+  "document-metadata.date.other": "{formattedDate}"
+}
