@@ -1,6 +1,6 @@
 {
   "name": "strapi-plugin-document-metadata",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Displays entity metadata, with an option to include \"last opened\" details.",
   "keywords": [
     "strapi",
