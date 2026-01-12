@@ -72,7 +72,10 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       })
       .where({
         document_id: documentId,
-        locale: locale,
+        // We explicitly need to provide `null` here, cause in the database
+        // the locale is stored as `NULL` when localization is turned off.
+        // Without this fallback, the query would not match any rows.
+        locale: locale || null,
       });
   },
 });
