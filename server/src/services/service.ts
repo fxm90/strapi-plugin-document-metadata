@@ -55,8 +55,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
     openedAt: string;
     openedBy: string;
   }) {
-    // We explicitly have to use a raw SQL query here, cause when using the Document Service API
-    // the field `updatedAt` would automatically gets updated, which we explicitly want to avoid.
+    // We explicitly have to use a raw SQL query here, because when using the Document Service API
+    // the field `updatedAt` would automatically get updated, which we explicitly want to avoid.
     const tableName = strapi.getModel(uid).collectionName;
     if (!tableName) {
       throw new Error(
@@ -72,7 +72,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       })
       .where({
         document_id: documentId,
-        // We explicitly need to provide `null` here, cause in the database
+        // We explicitly need to provide `null` here, because in the database
         // the locale is stored as `NULL` when localization is turned off.
         // Without this fallback, the query would not match any rows.
         locale: locale || null,

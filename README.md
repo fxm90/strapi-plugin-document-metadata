@@ -35,7 +35,7 @@ Then restart the app to apply the changes.
 
 ### 2. Use in the Admin Panel
 
-Once the plugin is installed, the **Document Metadata** card automatically appears when editing **collection types entries**. By default, it displays:
+Once the plugin is installed, the **Document Metadata** card automatically appears when editing **collection type entries**. By default, it displays:
 
 - Created at
 - Created by
