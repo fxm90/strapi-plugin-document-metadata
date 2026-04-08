@@ -1,10 +1,9 @@
 import { unstable_useDocument as useDocument, useQueryParams } from '@strapi/strapi/admin';
 import { Box, Divider, Flex, Grid, Typography } from '@strapi/design-system';
 import { Paperclip } from '@strapi/icons';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 import { prefixKey } from '../../utils/prefixKey';
-import { relativeDateFormatter } from '../../utils/relativeDateFormatter';
-import { recentTimeFormatter } from '../../utils/recentTimeFormatter';
+import { useFormatters } from '../../hooks/useFormatters';
 import LastOpenedMetadataGuard from '../LastOpenedMetadataGuard';
 import MetadataRow from '../MetadataRow';
 
@@ -13,6 +12,39 @@ import MetadataRow from '../MetadataRow';
 //
 
 import type { CollectionType, ContentTypeUID, DocumentID } from '../../types';
+
+interface User {
+  firstname?: string;
+  lastname?: string;
+  username?: string;
+  email?: string;
+}
+
+//
+// Helper
+//
+
+/**
+ * Formats a user object into a displayable username string.
+ */
+const formatUsername = (user: User): string => {
+  const { username } = user;
+  if (username) {
+    return username;
+  }
+
+  const fullName = [user?.firstname, user?.lastname].filter(Boolean).join(' ');
+  if (fullName) {
+    return fullName;
+  }
+
+  const { email } = user;
+  if (email) {
+    return email;
+  }
+
+  return '';
+};
 
 //
 // Components
@@ -30,14 +62,11 @@ const DocumentMetadataCard = ({
   uid: ContentTypeUID;
   documentId: DocumentID;
 }) => {
-  const { formatMessage } = useIntl();
-  const translate = (key: string, values?: any): string =>
-    formatMessage({ id: prefixKey(key) }, values);
+  const { translate, formatDate } = useFormatters();
 
   // Fetch the current locale from the query parameters (if available).
-  const initialParams = { plugins: { i18n: { locale: undefined } } };
-  const [queryParams, _] = useQueryParams(initialParams);
-  const locale = queryParams.query.plugins.i18n.locale;
+  const [queryParams] = useQueryParams({ plugins: { i18n: { locale: undefined } } });
+  const locale = queryParams.query.plugins?.i18n?.locale;
 
   // Using the `useDocument()` hook here keeps our metadata value `updatedAt` in sync when the document is updated.
   const { document } = useDocument({ documentId, model: uid, collectionType, params: { locale } });
@@ -45,31 +74,17 @@ const DocumentMetadataCard = ({
     return null;
   }
 
-  const formatDate = (date: Date) =>
-    recentTimeFormatter({
-      date: new Date(date),
-      fallbackFormatter: (date) =>
-        relativeDateFormatter(date, {
-          today: (formattedTime: string) => translate('date.today', { formattedTime }),
-          yesterday: (formattedTime: string) => translate('date.yesterday', { formattedTime }),
-          other: (formattedDate: string) => translate('date.other', { formattedDate }),
-        }),
-    });
-
-  const formatUsername = (user: { firstname: string; lastname: string }) =>
-    `${user.firstname} ${user.lastname}`;
-
   // The field `updatedAt` is always present on a Strapi document,
   // where the field `updatedBy` may be missing (e.g. when updated via an API call).
-  let formattedUpdatedAt = formatDate(new Date(document.updatedAt));
-  let formattedUpdatedBy = document.updatedBy
+  const formattedUpdatedAt = formatDate(new Date(document.updatedAt));
+  const formattedUpdatedBy = document.updatedBy
     ? translate('updated-by', { username: formatUsername(document.updatedBy) })
     : '';
 
   // The field `createdAt` is always present on a Strapi document,
   // where the field `createdBy` may be missing (e.g. when created via an API call).
-  let formattedCreatedAt = formatDate(new Date(document.createdAt));
-  let formattedCreatedBy = document.createdBy
+  const formattedCreatedAt = formatDate(new Date(document.createdAt));
+  const formattedCreatedBy = document.createdBy
     ? translate('created-by', { username: formatUsername(document.createdBy) })
     : '';
 

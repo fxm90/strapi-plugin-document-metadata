@@ -13,7 +13,7 @@ import type { CollectionType, ContentTypeUID, DocumentID } from '../../types';
 
 const config: {
   supportedCollectionType: CollectionType;
-  documentIdLength: number;
+  documentIdRegex: RegExp;
 } = {
   /**
    * The supported collection type.
@@ -22,14 +22,14 @@ const config: {
   supportedCollectionType: 'collection-types',
 
   /**
-   * The expected length of a valid document ID.
+   * A regex that matches a valid document ID.
    *
    * > To address this limitation, Strapi 5 introduced documentId, a 24-character alphanumeric string, as a unique and
    * > persistent identifier for a content entry, independent of its physical records.
    *
    * https://docs.strapi.io/cms/api/document-service
    */
-  documentIdLength: 24,
+  documentIdRegex: /^[a-z0-9]{24}$/,
 };
 
 //
@@ -51,8 +51,8 @@ const DocumentMetadataGuard = () => {
   const [collectionType, uid, documentId] = urlPathComponents.slice(-3);
 
   const isValidCollectionType = collectionType === config.supportedCollectionType;
-  const isValidUID = uid && uid.length;
-  const isValidDocumentId = documentId && documentId.length === config.documentIdLength;
+  const isValidUID = !!uid;
+  const isValidDocumentId = documentId && config.documentIdRegex.test(documentId);
 
   if (!isValidCollectionType || !isValidUID || !isValidDocumentId) {
     return null;
