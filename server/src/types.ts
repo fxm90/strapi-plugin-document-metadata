@@ -8,5 +8,6 @@ import type { UID, Data, Modules } from '@strapi/strapi';
 
 export type ContentTypeUID = UID.ContentType;
 export type DocumentID = Data.DocumentID;
+export type AnyDocument = Modules.Documents.AnyDocument;
 
-export type Locale = Modules.Documents.Params.Locale;
+export type Locale = Modules.Documents.Params.Locale.StringNotation;

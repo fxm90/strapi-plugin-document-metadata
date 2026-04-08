@@ -19,11 +19,44 @@ interface LastOpenedQuery {
 
 /** The Koa context state containing details about the authenticated user. */
 interface State {
-  user: {
-    firstname: string;
-    lastname: string;
+  user?: {
+    firstname?: string;
+    lastname?: string;
+    username?: string;
+    email?: string;
   };
 }
+
+//
+// Helper
+//
+
+/**
+ * Resolves the username of the currently authenticated user from the given Koa context state.
+ */
+const resolveOpenedBy = (state: State): string | null => {
+  const { user } = state;
+  if (!user) {
+    return null;
+  }
+
+  const { username } = user;
+  if (username) {
+    return username;
+  }
+
+  const fullName = [user?.firstname, user?.lastname].filter(Boolean).join(' ');
+  if (fullName) {
+    return fullName;
+  }
+
+  const { email } = user;
+  if (email) {
+    return email;
+  }
+
+  return null;
+};
 
 //
 // Controller
@@ -32,11 +65,11 @@ interface State {
 const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
    * Controller method for the route that fetches and updates the last-opened fields
-   * of a document with the given `uid` and `documentId` path parameters (GET request).
+   * of a document with the given `uid` and `documentId` path parameters (POST request).
    */
   async lastOpened(ctx: Context) {
     const { uid, documentId } = ctx.params as LastOpenedParams;
-    const { locale } = ctx.request.query as LastOpenedQuery;
+    const { locale } = ctx.query as LastOpenedQuery;
 
     // First fetch the previous last-opened metadata.
     const previousLastOpened = await strapi
@@ -46,8 +79,7 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
 
     // Afterwards we can update the last-opened metadata.
     const openedAt = new Date().toISOString();
-    const { user } = ctx.state as State;
-    const openedBy = `${user.firstname} ${user.lastname}`;
+    const openedBy = resolveOpenedBy(ctx.state as State);
 
     await strapi
       .plugin('document-metadata')
@@ -55,7 +87,7 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
       .updateLastOpened({ uid, documentId, locale, openedAt, openedBy });
 
     // Finally return the previous last-opened metadata.
-    ctx.response.body = previousLastOpened;
+    ctx.body = previousLastOpened;
   },
 });
 

@@ -1,9 +1,36 @@
+import { rawDocumentWriter } from '../utils/rawDocumentWriter';
+
 //
 // Types
 //
 
-import type { Core } from '@strapi/strapi';
+import type { Core, Schema } from '@strapi/strapi';
 import type { ContentTypeUID, DocumentID, Locale } from '../types';
+
+/**
+ * Describes the configuration options for Strapi's i18n plugin.
+ *
+ * This represents the shape of the `i18n` object stored under `pluginOptions` for a content type.
+ * It indicates whether localization is enabled.
+ */
+export interface I18nPluginOptions {
+  localized?: boolean;
+}
+
+/**
+ * Describes the subset of a Strapi content type model that includes plugin options,
+ * specifically the i18n configuration injected at runtime.
+ *
+ * This mirrors the internal structure used by Strapi to attach plugin configuration to content type schemas.
+ * It is not part of Strapi's public type surface.
+ *
+ * - Note: Exported for testing and type-guarding purposes only.
+ */
+export interface ModelI18nOptions {
+  pluginOptions?: {
+    i18n?: I18nPluginOptions;
+  };
+}
 
 //
 // Service
@@ -17,7 +44,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
    * @param documentId - The ID of the document to fetch.
    * @param locale - The current locale of the content type / `undefined` if localization is turned off.
    */
-  fetchLastOpened: async ({
+  async fetchLastOpened({
     uid,
     documentId,
     locale,
@@ -25,11 +52,17 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
     uid: ContentTypeUID;
     documentId: DocumentID;
     locale: Locale | undefined;
-  }) => {
-    return await strapi.documents(uid).findOne({
+  }) {
+    const model = strapi.getModel(uid);
+    if (!model) {
+      throw new Error(`Content type "${uid}" not found.`);
+    }
+
+    const effectiveLocale = resolveEffectiveLocale(model, locale);
+    return strapi.documents(uid).findOne({
       documentId,
       fields: ['openedAt', 'openedBy'],
-      locale,
+      locale: effectiveLocale,
     });
   },
 
@@ -53,31 +86,69 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
     documentId: DocumentID;
     locale: Locale | undefined;
     openedAt: string;
-    openedBy: string;
+    openedBy: string | null;
   }) {
-    // We explicitly have to use a raw SQL query here, because when using the Document Service API
-    // the field `updatedAt` would automatically get updated, which we explicitly want to avoid.
-    const tableName = strapi.getModel(uid).collectionName;
-    if (!tableName) {
-      throw new Error(
-        `Expected to have a collection name for the content type "${uid}" at this point.`
-      );
+    const model = strapi.getModel(uid);
+    if (!model) {
+      throw new Error(`Content type "${uid}" not found.`);
     }
 
-    return await strapi.db
-      .connection(tableName)
-      .update({
-        opened_at: openedAt,
-        opened_by: openedBy,
-      })
-      .where({
-        document_id: documentId,
-        // We explicitly need to provide `null` here, because in the database
-        // the locale is stored as `NULL` when localization is turned off.
-        // Without this fallback, the query would not match any rows.
-        locale: locale || null,
-      });
+    const effectiveLocale = resolveEffectiveLocale(model, locale);
+
+    // We intentionally bypass the Document Service API here and write directly to the database via Knex.
+    // Normally this is discouraged because it skips lifecycle hooks and couples the code to Strapi’s internal schema.
+    //
+    // In this case it is acceptable because:
+    //
+    // 1. Modifying the document using the Document Service API always sets a published document back to a draft state.
+    //    Using `publish()` afterwards would publish the entire draft, potentially surfacing content changes the editor
+    //    has not yet intentionally published.
+    //
+    // 2. Modifying the document using the Document Service API would further update the `updatedAt` / `updatedBy` values and
+    //    trigger lifecycle hooks, which is undesirable for an internal metadata update.
+    //
+    // 3. `openedAt` / `openedBy` are plugin-managed metadata fields, not user-authored content.
+    //    They have no business being in a draft state — their purpose is to reflect the metadata of the live document,
+    //    regardless of any unpublished changes in the draft.
+    //
+    // 4. We update all rows sharing the same `document_id` (both draft and published) in a single query,
+    //    keeping both versions in sync without any state transition.
+    const documentWriter = rawDocumentWriter({ strapi });
+    return documentWriter.updateAllDocumentVersions({
+      uid,
+      documentId,
+      locale: effectiveLocale,
+      data: {
+        openedAt,
+        openedBy,
+      },
+    });
   },
 });
 
 export default service;
+
+//
+// Helper
+//
+/**
+ * Resolves the effective locale to use for queries, returning `undefined` for non-localized content types.
+ *
+ * Strapi adds `plugins[i18n][locale]=<LAST-SELECTED-LOCALE>` to the URL, even for content types where localization is disabled.
+ * Passing that locale value to a non-localized type causes problems:
+ *
+ * - The raw Knex writer fails to match any rows, because the `locale` column is stored as `NULL` for non-localized types.
+ * - The Document Service API silently ignores it, but we strip it anyway to keep both callers consistent.
+ *
+ * @param model - The content type's model, potentially containing the i18n plugin options.
+ * @param locale - The locale value injected by Strapi's i18n plugin / `undefined` if localization is turned off.
+ *
+ * @returns The locale for localized types, or `undefined` for non-localized types.
+ */
+const resolveEffectiveLocale = (
+  model: Schema.ContentType & ModelI18nOptions,
+  locale: Locale | undefined
+): Locale | undefined => {
+  const isLocalized = model.pluginOptions?.i18n?.localized === true;
+  return isLocalized ? locale : undefined;
+};
