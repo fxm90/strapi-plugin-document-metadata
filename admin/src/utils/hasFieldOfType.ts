@@ -17,7 +17,7 @@ import type { Schema } from '@strapi/strapi';
  *
  * @returns `true` if the field exists and matches the expected type, `false` otherwise.
  *
- * - Note: This is intentionally duplicated in `admin/src/utils/hasFieldOfType.ts`.
+ * - Note: This is intentionally duplicated in `server/src/utils/hasFieldOfType.ts`.
  *         Keep both copies in sync when making changes.
  */
 export const hasFieldOfType = (
