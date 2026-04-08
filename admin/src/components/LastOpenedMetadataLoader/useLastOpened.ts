@@ -63,8 +63,9 @@ export const useLastOpened = ({
       setLastOpenedFetchState({ status: FetchStatus.InProgress });
 
       try {
-        const { data: lastOpened } = await fetchClient.get<LastOpened>(
+        const { data: lastOpened } = await fetchClient.post<LastOpened>(
           config.lastOpenedRequest.path(uid, documentId),
+          {},
           {
             params: { locale },
           }

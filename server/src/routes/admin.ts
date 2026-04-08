@@ -2,7 +2,7 @@ export default {
   type: 'admin',
   routes: [
     {
-      method: 'GET',
+      method: 'POST',
       path: '/last-opened/:uid/:documentId',
       handler: 'controller.lastOpened',
       config: {
