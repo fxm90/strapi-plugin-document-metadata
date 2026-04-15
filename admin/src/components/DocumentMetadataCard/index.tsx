@@ -2,8 +2,9 @@ import { unstable_useDocument as useDocument, useQueryParams } from '@strapi/str
 import { Box, Divider, Flex, Grid, Typography } from '@strapi/design-system';
 import { Paperclip } from '@strapi/icons';
 import { FormattedMessage } from 'react-intl';
-import { prefixKey } from '../../utils/prefixKey';
 import { useFormatters } from '../../hooks/useFormatters';
+import { prefixKey } from '../../utils/prefixKey';
+
 import LastOpenedMetadataGuard from '../LastOpenedMetadataGuard';
 import MetadataRow from '../MetadataRow';
 
@@ -12,39 +13,6 @@ import MetadataRow from '../MetadataRow';
 //
 
 import type { CollectionType, ContentTypeUID, DocumentID } from '../../types';
-
-interface User {
-  firstname?: string;
-  lastname?: string;
-  username?: string;
-  email?: string;
-}
-
-//
-// Helper
-//
-
-/**
- * Formats a user object into a displayable username string.
- */
-const formatUsername = (user: User): string => {
-  const { username } = user;
-  if (username) {
-    return username;
-  }
-
-  const fullName = [user?.firstname, user?.lastname].filter(Boolean).join(' ');
-  if (fullName) {
-    return fullName;
-  }
-
-  const { email } = user;
-  if (email) {
-    return email;
-  }
-
-  return '';
-};
 
 //
 // Components
@@ -62,7 +30,7 @@ const DocumentMetadataCard = ({
   uid: ContentTypeUID;
   documentId: DocumentID;
 }) => {
-  const { translate, formatDate } = useFormatters();
+  const { translate, formatDate, formatUser } = useFormatters();
 
   // Fetch the current locale from the query parameters (if available).
   const [queryParams] = useQueryParams({ plugins: { i18n: { locale: undefined } } });
@@ -78,14 +46,14 @@ const DocumentMetadataCard = ({
   // where the field `updatedBy` may be missing (e.g. when updated via an API call).
   const formattedUpdatedAt = formatDate(new Date(document.updatedAt));
   const formattedUpdatedBy = document.updatedBy
-    ? translate('updated-by', { username: formatUsername(document.updatedBy) })
+    ? translate('updated-by', { username: formatUser(document.updatedBy) })
     : '';
 
   // The field `createdAt` is always present on a Strapi document,
   // where the field `createdBy` may be missing (e.g. when created via an API call).
   const formattedCreatedAt = formatDate(new Date(document.createdAt));
   const formattedCreatedBy = document.createdBy
-    ? translate('created-by', { username: formatUsername(document.createdBy) })
+    ? translate('created-by', { username: formatUser(document.createdBy) })
     : '';
 
   return (

@@ -48,10 +48,10 @@ No additional setup is required for these fields.
 
 To enable **Last Opened** tracking, add the following fields to your collection type using the Content-Type Builder:
 
-| Field name | Type     | Required |
-| ---------- | -------- | -------- |
-| `openedAt` | DateTime | ❌       |
-| `openedBy` | String   | ❌       |
+| Field name | Type                                  | Required |
+| ---------- | ------------------------------------- | -------- |
+| `openedAt` | DateTime                              | ❌       |
+| `openedBy` | Relation (One-to-One → `users:admin`) | ❌       |
 
 Once these fields exist:
 

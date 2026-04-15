@@ -11,3 +11,15 @@ export type DocumentID = Data.DocumentID;
 export type AnyDocument = Modules.Documents.AnyDocument;
 
 export type Locale = Modules.Documents.Params.Locale.StringNotation;
+
+export interface User {
+  firstname?: string;
+  lastname?: string;
+  username?: string;
+  email?: string;
+}
+
+export interface LastOpened {
+  openedAt: string | null;
+  openedBy: User | null;
+}

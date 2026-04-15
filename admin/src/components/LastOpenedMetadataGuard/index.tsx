@@ -21,7 +21,9 @@ const LastOpenedMetadataGuard = ({
   uid: ContentTypeUID;
   document: AnyDocument;
 }) => {
-  const hasLastOpenedFields = 'openedAt' in document && 'openedBy' in document;
+  const hasLastOpenedFields =
+    Object.hasOwn(document, 'openedAt') && Object.hasOwn(document, 'openedBy');
+
   if (!hasLastOpenedFields) {
     return null;
   }

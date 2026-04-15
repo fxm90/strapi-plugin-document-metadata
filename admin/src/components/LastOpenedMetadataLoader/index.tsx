@@ -37,7 +37,7 @@ const LastOpenedMetadataLoader = ({
   documentId: DocumentID;
   locale: string | undefined;
 }) => {
-  const { translate, formatDate } = useFormatters();
+  const { translate, formatDate, formatUser } = useFormatters();
 
   // To avoid any caching issues when reading the values of the `useDocument()` hook, we manually fetch the last-opened fields here.
   // This call will also update the last-opened fields in the database with the current time and user.
@@ -76,7 +76,7 @@ const LastOpenedMetadataLoader = ({
           // More of a theoretical edge case, but `openedBy` can be null.
           line2={
             lastOpened.openedBy
-              ? translate('opened-by', { username: lastOpened.openedBy })
+              ? translate('opened-by', { username: formatUser(lastOpened.openedBy) })
               : undefined
           }
         />

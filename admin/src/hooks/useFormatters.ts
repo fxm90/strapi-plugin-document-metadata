@@ -3,6 +3,7 @@ import { useIntl } from 'react-intl';
 import { prefixKey } from '../utils/prefixKey';
 import { relativeDateFormatter } from '../utils/relativeDateFormatter';
 import { recentTimeFormatter } from '../utils/recentTimeFormatter';
+import { userFormatter } from '../utils/userFormatter';
 
 /**
  * Returns shared formatting utilities.
@@ -46,5 +47,9 @@ export const useFormatters = () => {
     [translate, uiLocale]
   );
 
-  return { translate, formatDate };
+  /**
+   * - Note: We have `userFormatter` as part of this hook to maintain consistency in how we format
+   *         user information across the admin interface.
+   */
+  return { translate, formatDate, formatUser: userFormatter };
 };

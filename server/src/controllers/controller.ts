@@ -4,7 +4,7 @@
 
 import type { Core } from '@strapi/strapi';
 import type { Context } from 'koa';
-import type { ContentTypeUID, DocumentID, Locale } from '../types';
+import type { ContentTypeUID, DocumentID, LastOpened, Locale } from '../types';
 
 /** The URL path parameters for the last-opened request. */
 interface LastOpenedParams {
@@ -20,48 +20,19 @@ interface LastOpenedQuery {
 /** The Koa context state containing details about the authenticated user. */
 interface State {
   user?: {
-    firstname?: string;
-    lastname?: string;
-    username?: string;
-    email?: string;
+    documentId?: DocumentID;
   };
 }
-
-//
-// Helper
-//
-
-/**
- * Resolves the username of the currently authenticated user from the given Koa context state.
- */
-const resolveOpenedBy = (state: State): string | null => {
-  const { user } = state;
-  if (!user) {
-    return null;
-  }
-
-  const { username } = user;
-  if (username) {
-    return username;
-  }
-
-  const fullName = [user?.firstname, user?.lastname].filter(Boolean).join(' ');
-  if (fullName) {
-    return fullName;
-  }
-
-  const { email } = user;
-  if (email) {
-    return email;
-  }
-
-  return null;
-};
 
 //
 // Controller
 //
 
+/**
+ * The controller for the document metadata plugin, containing the HTTP request handling logic for the plugin's routes.
+ *
+ *  - Note: Controllers validate HTTP input shape and format (presence, type, format of request parameters).
+ */
 const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
    * Controller method for the route that fetches and updates the last-opened fields
@@ -72,22 +43,19 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
     const { locale } = ctx.query as LastOpenedQuery;
 
     // First fetch the previous last-opened metadata.
-    const previousLastOpened = await strapi
-      .plugin('document-metadata')
-      .service('service')
-      .fetchLastOpened({ uid, documentId, locale });
+    const service = strapi.plugin('document-metadata').service('service');
+    const previousLastOpened = await service.fetchLastOpened({ uid, documentId, locale });
 
     // Afterwards we can update the last-opened metadata.
     const openedAt = new Date().toISOString();
-    const openedBy = resolveOpenedBy(ctx.state as State);
 
-    await strapi
-      .plugin('document-metadata')
-      .service('service')
-      .updateLastOpened({ uid, documentId, locale, openedAt, openedBy });
+    const { user } = ctx.state as State;
+    const openedBy = user?.documentId ?? null;
+
+    await service.updateLastOpened({ uid, documentId, locale, openedAt, openedBy });
 
     // Finally return the previous last-opened metadata.
-    ctx.body = previousLastOpened;
+    ctx.body = previousLastOpened ?? { openedAt: null, openedBy: null };
   },
 });
 

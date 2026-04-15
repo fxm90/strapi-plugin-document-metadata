@@ -11,7 +11,14 @@ export type CollectionType = 'single-types' | 'collection-types';
 export type ContentTypeUID = UID.ContentType;
 export type DocumentID = Data.DocumentID;
 
+export interface User {
+  firstname?: string;
+  lastname?: string;
+  username?: string;
+  email?: string;
+}
+
 export interface LastOpened {
-  openedAt?: string;
-  openedBy?: string;
+  openedAt: string | null;
+  openedBy: User | null;
 }
