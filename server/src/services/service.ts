@@ -1,3 +1,7 @@
+import { hasFieldOfType } from '../utils/hasFieldOfType';
+import { rawDocumentWriter } from '../utils/rawDocumentWriter';
+import { resolveEffectiveLocale } from '../utils/resolveEffectiveLocale';
+
 //
 // Types
 //
@@ -9,6 +13,12 @@ import type { ContentTypeUID, DocumentID, Locale } from '../types';
 // Service
 //
 
+/*
+ * The service for the document metadata plugin, containing the core business logic for
+ * fetching and updating the last-opened fields of documents.
+ *
+ *  - Note: Services validate business and domain invariants (e.g. content type existence, required fields, data consistency).
+ */
 const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
    * Fetches the last-opened fields for a specific document within a content type.
@@ -17,7 +27,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
    * @param documentId - The ID of the document to fetch.
    * @param locale - The current locale of the content type / `undefined` if localization is turned off.
    */
-  fetchLastOpened: async ({
+  async fetchLastOpened({
     uid,
     documentId,
     locale,
@@ -25,11 +35,29 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
     uid: ContentTypeUID;
     documentId: DocumentID;
     locale: Locale | undefined;
-  }) => {
-    return await strapi.documents(uid).findOne({
+  }) {
+    const model = strapi.getModel(uid);
+    if (!model) {
+      throw new Error(`Content type "${uid}" not found.`);
+    }
+
+    if (!hasFieldOfType(model, 'openedAt', 'datetime')) {
+      throw new Error(
+        `Content type "${uid}" must define an "openedAt" attribute of type "datetime".`
+      );
+    }
+
+    if (!hasFieldOfType(model, 'openedBy', 'string')) {
+      throw new Error(
+        `Content type "${uid}" must define an "openedBy" attribute of type "string".`
+      );
+    }
+
+    const effectiveLocale = await resolveEffectiveLocale({ strapi, model, locale });
+    return strapi.documents(uid).findOne({
       documentId,
       fields: ['openedAt', 'openedBy'],
-      locale,
+      locale: effectiveLocale,
     });
   },
 
@@ -53,30 +81,52 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
     documentId: DocumentID;
     locale: Locale | undefined;
     openedAt: string;
-    openedBy: string;
+    openedBy: string | null;
   }) {
-    // We explicitly have to use a raw SQL query here, because when using the Document Service API
-    // the field `updatedAt` would automatically get updated, which we explicitly want to avoid.
-    const tableName = strapi.getModel(uid).collectionName;
-    if (!tableName) {
+    const model = strapi.getModel(uid);
+    if (!model) {
+      throw new Error(`Content type "${uid}" not found.`);
+    }
+
+    if (!hasFieldOfType(model, 'openedAt', 'datetime')) {
       throw new Error(
-        `Expected to have a collection name for the content type "${uid}" at this point.`
+        `Content type "${uid}" must define an "openedAt" attribute of type "datetime".`
       );
     }
 
-    return await strapi.db
-      .connection(tableName)
-      .update({
-        opened_at: openedAt,
-        opened_by: openedBy,
-      })
-      .where({
-        document_id: documentId,
-        // We explicitly need to provide `null` here, because in the database
-        // the locale is stored as `NULL` when localization is turned off.
-        // Without this fallback, the query would not match any rows.
-        locale: locale || null,
-      });
+    if (!hasFieldOfType(model, 'openedBy', 'string')) {
+      throw new Error(
+        `Content type "${uid}" must define an "openedBy" attribute of type "string".`
+      );
+    }
+
+    const effectiveLocale = await resolveEffectiveLocale({ strapi, model, locale });
+
+    // We intentionally bypass the Document Service API here and write directly to the database via Knex.
+    // Normally this is discouraged because it skips lifecycle hooks and couples the code to Strapi’s internal schema.
+    //
+    // In this case it is acceptable because:
+    //
+    // 1. Modifying the document using the Document Service API always sets a published document back to a draft state.
+    //    Using `publish()` afterwards would publish the entire draft, potentially surfacing content changes the editor
+    //    has not yet intentionally published.
+    //
+    // 2. Modifying the document using the Document Service API would further update the `updatedAt` / `updatedBy` values and
+    //    trigger lifecycle hooks, which is undesirable for an internal metadata update.
+    //
+    // 3. `openedAt` / `openedBy` are plugin-managed metadata fields, not user-authored content.
+    //    They have no business being in a draft state — their purpose is to reflect the metadata of the live document,
+    //    regardless of any unpublished changes in the draft.
+    const documentWriter = rawDocumentWriter({ strapi });
+    return documentWriter.updateAllDocumentVersions({
+      uid,
+      documentId,
+      locale: effectiveLocale,
+      data: {
+        openedAt,
+        openedBy,
+      },
+    });
   },
 });
 
