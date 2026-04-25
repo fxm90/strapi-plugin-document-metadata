@@ -1,10 +1,12 @@
+import { hasFieldOfType } from '../../utils/hasFieldOfType';
 import LastOpenedMetadataLoader from '../LastOpenedMetadataLoader';
 
 //
 // Types
 //
 
-import type { AnyDocument, ContentTypeUID } from '../../types';
+import type { Schema } from '@strapi/strapi';
+import type { ContentTypeUID, DocumentID } from '../../types';
 
 //
 // Components
@@ -16,19 +18,23 @@ import type { AnyDocument, ContentTypeUID } from '../../types';
  */
 const LastOpenedMetadataGuard = ({
   uid,
-  document,
+  documentId,
+  locale,
+  schema,
 }: {
   uid: ContentTypeUID;
-  document: AnyDocument;
+  documentId: DocumentID;
+  locale: string | undefined;
+  schema: Schema.ContentType;
 }) => {
-  const hasLastOpenedFields = 'openedAt' in document && 'openedBy' in document;
+  const hasLastOpenedFields =
+    hasFieldOfType(schema, 'openedAt', 'datetime') && hasFieldOfType(schema, 'openedBy', 'string');
+
   if (!hasLastOpenedFields) {
     return null;
   }
 
-  return (
-    <LastOpenedMetadataLoader uid={uid} documentId={document.documentId} locale={document.locale} />
-  );
+  return <LastOpenedMetadataLoader uid={uid} documentId={documentId} locale={locale} />;
 };
 
 export default LastOpenedMetadataGuard;

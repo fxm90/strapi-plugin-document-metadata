@@ -25,7 +25,7 @@ type LastOpenedFetchState =
   | { status: FetchStatus.Initial }
   | { status: FetchStatus.InProgress }
   | { status: FetchStatus.Success; lastOpened: LastOpened }
-  | { status: FetchStatus.Failure; error: any };
+  | { status: FetchStatus.Failure; error: unknown };
 
 //
 // Config
@@ -58,28 +58,45 @@ export const useLastOpened = ({
     status: FetchStatus.Initial,
   });
 
-  useEffect(() => {
-    const fetchLastOpened = async () => {
-      setLastOpenedFetchState({ status: FetchStatus.InProgress });
+  useEffect(
+    () => {
+      const abortController = new AbortController();
+      setLastOpenedFetchState({ status: FetchStatus.Initial });
 
-      try {
-        const { data: lastOpened } = await fetchClient.post<LastOpened>(
-          config.lastOpenedRequest.path(uid, documentId),
-          {},
-          {
-            params: { locale },
+      const fetchLastOpened = async () => {
+        setLastOpenedFetchState({ status: FetchStatus.InProgress });
+
+        try {
+          const { data: lastOpened } = await fetchClient.post<LastOpened>(
+            config.lastOpenedRequest.path(uid, documentId),
+            {},
+            {
+              params: { locale },
+              signal: abortController.signal,
+            }
+          );
+
+          setLastOpenedFetchState({ status: FetchStatus.Success, lastOpened });
+        } catch (error) {
+          if (abortController.signal.aborted) {
+            // Silently ignore errors caused by an intentional abort.
+            return;
           }
-        );
 
-        setLastOpenedFetchState({ status: FetchStatus.Success, lastOpened });
-      } catch (error) {
-        console.error(`Failed to fetch last-opened metadata: ${error}`);
-        setLastOpenedFetchState({ status: FetchStatus.Failure, error });
-      }
-    };
+          console.error('Failed to fetch last-opened metadata', error);
+          setLastOpenedFetchState({ status: FetchStatus.Failure, error });
+        }
+      };
 
-    fetchLastOpened();
-  }, [uid, documentId, locale]);
+      fetchLastOpened();
+
+      return () => {
+        abortController.abort();
+      };
+    },
+    // - Note: `fetchClient` is stable across renders.
+    [fetchClient, uid, documentId, locale]
+  );
 
   return lastOpenedFetchState;
 };

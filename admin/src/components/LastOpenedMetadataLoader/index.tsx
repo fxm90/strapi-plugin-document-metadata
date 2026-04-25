@@ -1,7 +1,5 @@
-import { useIntl } from 'react-intl';
-import { prefixKey } from '../../utils/prefixKey';
-import { relativeDateFormatter } from '../../utils/relativeDateFormatter';
-import { recentTimeFormatter } from '../../utils/recentTimeFormatter';
+import { useFormatters } from '../../hooks/useFormatters';
+import { assertNever } from '../../utils/assertNever';
 import MetadataRow from '../MetadataRow';
 import { useLastOpened, FetchStatus } from './useLastOpened';
 
@@ -39,9 +37,7 @@ const LastOpenedMetadataLoader = ({
   documentId: DocumentID;
   locale: string | undefined;
 }) => {
-  const { formatMessage } = useIntl();
-  const translate = (key: string, values?: any): string =>
-    formatMessage({ id: prefixKey(key) }, values);
+  const { translate, formatDate } = useFormatters();
 
   // To avoid any caching issues when reading the values of the `useDocument()` hook, we manually fetch the last-opened fields here.
   // This call will also update the last-opened fields in the database with the current time and user.
@@ -63,33 +59,33 @@ const LastOpenedMetadataLoader = ({
       // We logged the error already in the hook.
       return null;
 
-    case FetchStatus.Success:
+    case FetchStatus.Success: {
       const lastOpened = lastOpenedFetchState.lastOpened;
-      if (!lastOpened.openedAt || !lastOpened.openedBy) {
+      if (!lastOpened.openedAt) {
         // Handle case where the document has never been opened before.
         return (
           <MetadataRow title={translate('opened-at')} line1={translate('opened-first-time')} />
         );
       }
 
-      const formattedOpenedAt = recentTimeFormatter({
-        date: new Date(lastOpened.openedAt),
-        fallbackFormatter: (date) =>
-          relativeDateFormatter(date, {
-            today: (formattedTime: string) => translate('date.today', { formattedTime }),
-            yesterday: (formattedTime: string) => translate('date.yesterday', { formattedTime }),
-            other: (formattedDate: string) => translate('date.other', { formattedDate }),
-          }),
-      });
-
-      const formattedOpenedBy = translate('opened-by', { username: lastOpened.openedBy });
+      const formattedOpenedAt = formatDate(new Date(lastOpened.openedAt));
       return (
         <MetadataRow
           title={translate('opened-at')}
           line1={formattedOpenedAt}
-          line2={formattedOpenedBy}
+          // More of a theoretical edge case, but `openedBy` can be null.
+          // If available, it contains a formatted string of the user details.
+          line2={
+            lastOpened.openedBy
+              ? translate('opened-by', { username: lastOpened.openedBy })
+              : undefined
+          }
         />
       );
+    }
+
+    default:
+      assertNever(lastOpenedFetchState);
   }
 };
 

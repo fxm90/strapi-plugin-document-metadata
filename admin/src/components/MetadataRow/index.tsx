@@ -9,8 +9,12 @@ const MetadataRow = ({ title, line1, line2 }: { title: string; line1: string; li
       <Typography variant="sigma">{title}</Typography>
       <Typography variant="pi" textColor="neutral600">
         {line1}
-        <br />
-        {line2}
+        {line2 && (
+          <>
+            <br />
+            {line2}
+          </>
+        )}
       </Typography>
     </Grid.Item>
   );

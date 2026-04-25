@@ -2,6 +2,8 @@ import { PLUGIN_ID } from './pluginId';
 import { Initializer } from './components/Initializer';
 import DocumentMetadataGuard from './components/DocumentMetadataGuard';
 
+import { type StrapiApp } from '@strapi/strapi/admin';
+
 /**
  * The view of the injection zone.
  *
@@ -25,7 +27,7 @@ const enum InjectionZoneLocation {
 }
 
 export default {
-  register(app: any) {
+  register(app: StrapiApp) {
     app
       .getPlugin('content-manager')
       .injectComponent(InjectionZoneView.editView, InjectionZoneLocation.rightLinks, {

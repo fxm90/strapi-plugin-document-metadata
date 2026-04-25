@@ -1,10 +1,10 @@
 import { unstable_useDocument as useDocument, useQueryParams } from '@strapi/strapi/admin';
 import { Box, Divider, Flex, Grid, Typography } from '@strapi/design-system';
 import { Paperclip } from '@strapi/icons';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
+import { useFormatters } from '../../hooks/useFormatters';
 import { prefixKey } from '../../utils/prefixKey';
-import { relativeDateFormatter } from '../../utils/relativeDateFormatter';
-import { recentTimeFormatter } from '../../utils/recentTimeFormatter';
+
 import LastOpenedMetadataGuard from '../LastOpenedMetadataGuard';
 import MetadataRow from '../MetadataRow';
 
@@ -30,48 +30,45 @@ const DocumentMetadataCard = ({
   uid: ContentTypeUID;
   documentId: DocumentID;
 }) => {
-  const { formatMessage } = useIntl();
-  const translate = (key: string, values?: any): string =>
-    formatMessage({ id: prefixKey(key) }, values);
+  const { translate, formatDate, formatUserDisplayName } = useFormatters();
 
   // Fetch the current locale from the query parameters (if available).
-  const initialParams = { plugins: { i18n: { locale: undefined } } };
-  const [queryParams, _] = useQueryParams(initialParams);
-  const locale = queryParams.query.plugins.i18n.locale;
+  const [queryParams] = useQueryParams({ plugins: { i18n: { locale: undefined } } });
+  const locale = queryParams.query.plugins?.i18n?.locale;
 
   // Using the `useDocument()` hook here keeps our metadata value `updatedAt` in sync when the document is updated.
-  const { document } = useDocument({ documentId, model: uid, collectionType, params: { locale } });
-  if (!document) {
+  const { document, schema } = useDocument({
+    documentId,
+    model: uid,
+    collectionType,
+    params: { locale },
+  });
+
+  if (!document || !schema) {
     return null;
   }
 
-  const formatDate = (date: Date) =>
-    recentTimeFormatter({
-      date: new Date(date),
-      fallbackFormatter: (date) =>
-        relativeDateFormatter(date, {
-          today: (formattedTime: string) => translate('date.today', { formattedTime }),
-          yesterday: (formattedTime: string) => translate('date.yesterday', { formattedTime }),
-          other: (formattedDate: string) => translate('date.other', { formattedDate }),
-        }),
-    });
-
-  const formatUsername = (user: { firstname: string; lastname: string }) =>
-    `${user.firstname} ${user.lastname}`;
-
   // The field `updatedAt` is always present on a Strapi document,
   // where the field `updatedBy` may be missing (e.g. when updated via an API call).
-  let formattedUpdatedAt = formatDate(new Date(document.updatedAt));
-  let formattedUpdatedBy = document.updatedBy
-    ? translate('updated-by', { username: formatUsername(document.updatedBy) })
-    : '';
+  const formattedUpdatedAt = formatDate(new Date(document.updatedAt));
+  const formattedUpdatedByUsername = document.updatedBy
+    ? formatUserDisplayName(document.updatedBy)
+    : null;
+
+  const formattedUpdatedBy = formattedUpdatedByUsername
+    ? translate('updated-by', { username: formattedUpdatedByUsername })
+    : null;
 
   // The field `createdAt` is always present on a Strapi document,
   // where the field `createdBy` may be missing (e.g. when created via an API call).
-  let formattedCreatedAt = formatDate(new Date(document.createdAt));
-  let formattedCreatedBy = document.createdBy
-    ? translate('created-by', { username: formatUsername(document.createdBy) })
-    : '';
+  const formattedCreatedAt = formatDate(new Date(document.createdAt));
+  const formattedCreatedByUsername = document.createdBy
+    ? formatUserDisplayName(document.createdBy)
+    : null;
+
+  const formattedCreatedBy = formattedCreatedByUsername
+    ? translate('created-by', { username: formattedCreatedByUsername })
+    : null;
 
   return (
     <Box
@@ -94,18 +91,23 @@ const DocumentMetadataCard = ({
           <Divider style={{ marginTop: '6px', marginBottom: '4px' }} />
         </Grid.Item>
 
-        <LastOpenedMetadataGuard uid={uid} document={document} />
+        <LastOpenedMetadataGuard
+          uid={uid}
+          documentId={documentId}
+          locale={locale}
+          schema={schema}
+        />
 
         <MetadataRow
           title={translate('updated-at')}
           line1={formattedUpdatedAt}
-          line2={formattedUpdatedBy}
+          line2={formattedUpdatedBy ?? undefined}
         />
 
         <MetadataRow
           title={translate('created-at')}
           line1={formattedCreatedAt}
-          line2={formattedCreatedBy}
+          line2={formattedCreatedBy ?? undefined}
         />
       </Grid.Root>
     </Box>
