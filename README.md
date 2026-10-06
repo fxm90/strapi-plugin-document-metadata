@@ -1,5 +1,7 @@
 # Strapi Plugin: Document Metadata
 
+![Strapi Plugin: Document Metadata](./assets/header-image.png)
+
 A Strapi plugin that displays entity metadata, with an option to include the **"last opened"** details.
 
 ## ⏳ Installation
@@ -64,4 +66,4 @@ Once these fields exist:
 
 Below are screenshots from an example application showing the document metadata in the list view and when editing an entry.
 
-<a href="./assets/content-type-builder.png"/><img src="./assets/content-type-builder-thumb.png" alt="Add openedAt and openedBy in the content type builder." /></a>&nbsp;&nbsp;<a href="./assets/content-manager-list-view.png"/><img src="./assets/content-manager-list-view-thumb.png" alt="Opened at and opened by in the list view." /></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="./assets/content-manager-first-time-opened.png"/><img src="./assets/content-manager-first-time-opened-thumb.png" alt="Document Metadata when opened for the first time." /></a>&nbsp;&nbsp;<a href="./assets/content-manager-last-time-opened.png"/><img src="./assets/content-manager-last-time-opened-thumb.png" alt="Document Metadata." /></a>
+<a href="./assets/screenshots/content-type-builder.png"/><img src="./assets/screenshots/content-type-builder-thumb.png" alt="Add openedAt and openedBy in the content type builder." /></a>&nbsp;&nbsp;<a href="./assets/screenshots/content-manager-list-view.png"/><img src="./assets/screenshots/content-manager-list-view-thumb.png" alt="Opened at and opened by in the list view." /></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="./assets/screenshots/content-manager-first-time-opened.png"/><img src="./assets/screenshots/content-manager-first-time-opened-thumb.png" alt="Document Metadata when opened for the first time." /></a>&nbsp;&nbsp;<a href="./assets/screenshots/content-manager-last-time-opened.png"/><img src="./assets/screenshots/content-manager-last-time-opened-thumb.png" alt="Document Metadata." /></a>
