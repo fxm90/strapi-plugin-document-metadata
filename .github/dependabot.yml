@@ -1,11 +1,3 @@
-#
-# Regular version updates are configured only for GitHub Actions.
-#
-# Dependabot alerts and security updates are enabled in the repository settings (Settings → Code security),
-# so vulnerable npm dependencies can still receive automated security-fix PRs.
-# The npm entry below only exists to group those security fixes into a single PR.
-#
-
 version: 2
 updates:
   # GitHub Actions
@@ -20,7 +12,8 @@ updates:
           - '*'
 
   # npm
-  # Disables regular version updates (`open-pull-requests-limit: 0`) and groups all security updates into one PR.
+  # Security updates only (enabled in Settings → Code security), grouped into a single PR.
+  # `open-pull-requests-limit: 0` disables regular version updates.
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
