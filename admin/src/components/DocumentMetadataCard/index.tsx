@@ -48,7 +48,13 @@ const DocumentMetadataCard = ({
     return null;
   }
 
-  // The field `updatedAt` is always present on a Strapi document,
+  // When creating a new locale for an existing document, Strapi returns an empty document (`data: {}`),
+  // as the document doesn't exist in the requested locale yet. There's no metadata to show in that case.
+  if (!document.updatedAt || !document.createdAt) {
+    return null;
+  }
+
+  // The field `updatedAt` is guaranteed to be present at this point (see guard above),
   // where the field `updatedBy` may be missing (e.g. when updated via an API call).
   const formattedUpdatedAt = formatDate(new Date(document.updatedAt));
   const formattedUpdatedByUsername = document.updatedBy
@@ -59,7 +65,7 @@ const DocumentMetadataCard = ({
     ? translate('updated-by', { username: formattedUpdatedByUsername })
     : null;
 
-  // The field `createdAt` is always present on a Strapi document,
+  // The field `createdAt` is guaranteed to be present at this point (see guard above),
   // where the field `createdBy` may be missing (e.g. when created via an API call).
   const formattedCreatedAt = formatDate(new Date(document.createdAt));
   const formattedCreatedByUsername = document.createdBy
